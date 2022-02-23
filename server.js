@@ -1,4 +1,5 @@
 'user strict';
+
 //configration server express
 const express = require("express");
 //get axios so we can send  HTTP requsts to an API`s
@@ -11,8 +12,15 @@ const dotenv = require("dotenv");
 const APIKEY = process.env.APIKEY;
 //Call PORT from env
 //const PORT = process.env.PORT;
+//Call PG to conect whit database
+const pg = require("pg");
+//Call databaseURL
+const DATABASER_URL = process.env.DATABASER_URL;
+//initialize conaction
+const client = new pg.Client(DATABASER_URL);
 //initialize app
 const app = express();
+app.use(express.json());
 //===============================(Build The Constructors /)============================================
 function Movies(title, poster_path, overview) {
     this.title = title;
@@ -156,6 +164,49 @@ function upcomingHandler(req, res) {
 }
 //===============================(end int point /upcoming)=======================================================================
 //=======================================================================================================================
+//===============================(int point /getMovie)===============================================================
+app.get("/getMovie", getHandler);
+
+function getHandler(req, res) {
+    const sql = `SELECT * FROM addMovies`;
+
+    client
+        .query(sql)
+        .then((result) => {
+            return res.status(200).json(result.rows);
+        })
+        .catch((error) => {
+            serverError(error, req, res);
+        });
+}
+
+//===============================(end int point /getMovie)=======================================================================
+//=======================================================================================================================
+//===============================(int point /addMovie)===============================================================
+app.post("/addMovies", addHandler);
+
+function addHandler(req, res) {
+    const movie = req.body;
+    const sql = `INSERT INTO addMovies(title, release_date, poster_path, overview, comment) VALUES($1, $2, $3, $4, $5) RETURNING *`;
+    const values = [
+        movie.title,
+        movie.release_date,
+        movie.poster_path,
+        movie.overview,
+        movie.comment,
+    ];
+    client
+        .query(sql, values)
+        .then((result) => {
+            res.status(201).json(result.rows);
+        })
+        .catch((error) => {
+            console.log(error);
+            serverError(error, req, res);
+        });
+}
+//===============================(end int point /addMovie)=======================================================================
+//=======================================================================================================================
 //===============================(int point /favorite)===============================================================
 app.get('/favorite', favoritemoviesHandler);
 
@@ -186,11 +237,10 @@ function serverError(req, res) {
 //=======================================================================================================================
 
 
-
-
-
-
 //TO Make My Server In Life 
-app.listen(3000, () => {
-    console.log(`Listen on 3000`);
-});
+client.connect()
+    .then(() => {
+        app.listen(3001, () => {
+            console.log(`Listen on 3001`);
+        });
+    });
