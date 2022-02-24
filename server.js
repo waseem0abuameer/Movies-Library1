@@ -8,6 +8,7 @@ const axios = require("axios");
 const movies = require("./Movie Data/data.json");
 //dotenv make ability to call
 const dotenv = require("dotenv");
+dotenv.config();
 //Call APIKEY from env
 const APIKEY = process.env.APIKEY;
 //Call PORT from env
@@ -183,7 +184,7 @@ function getHandler(req, res) {
 //===============================(end int point /getMovie)=======================================================================
 //=======================================================================================================================
 //===============================(int point /addMovie)===============================================================
-app.post("/addMovies", addHandler);
+app.post("/addmovies", addHandler);
 
 function addHandler(req, res) {
     const movie = req.body;
@@ -207,6 +208,7 @@ function addHandler(req, res) {
 }
 //===============================(end int point /addMovie)=======================================================================
 //=======================================================================================================================
+
 //===============================(int point /favorite)===============================================================
 app.get('/favorite', favoritemoviesHandler);
 
@@ -215,6 +217,103 @@ function favoritemoviesHandler(requ, res) {
 
 }
 //===============================(end int point /favorite)=======================================================================
+//=======================================================================================================================
+//===============================(int point /t14)===============================================================
+app.get("/movieById/:id", getMovieById);
+app.put("/updateMovie/:id", updateMovieHandler);
+app.delete("/deleteMovie/:id", deleteMovieHandler);
+
+function addHandler(req, res) {
+    const movie = req.body;
+    const sql = `INSERT INTO addMovies(title, release_date, poster_path, overview, comment) VALUES($1, $2, $3, $4, $5) RETURNING *`;
+    const values = [
+        movie.title,
+        movie.release_date,
+        movie.poster_path,
+        movie.overview,
+        movie.comment,
+    ];
+    client
+        .query(sql, values)
+        .then((result) => {
+            res.status(201).json(result.rows);
+        })
+        .catch((error) => {
+            console.log(error);
+            serverError(error, req, res);
+        });
+}
+
+function getHandler(req, res) {
+    const sql = `SELECT * FROM addMovies`;
+
+    client
+        .query(sql)
+        .then((result) => {
+            return res.status(200).json(result.rows);
+        })
+        .catch((error) => {
+            serverError(error, req, res);
+        });
+}
+
+function getMovieById(req, res) {
+    let id = req.params.id;
+    const sql = `SELECT * FROM addMovies WHERE id = $1;`;
+    const values = [id];
+
+    client
+        .query(sql, values)
+        .then((result) => {
+            return res.status(200).json(result.rows[0]);
+        })
+        .catch((error) => {
+            serverError(error, req, res);
+        });
+}
+
+function updateMovieHandler(req, res) {
+    const id = req.params.id;
+    const recipe = req.body;
+
+    const sql = `UPDATE addMovies SET title = $1, release_date = $2,poster_path = $3, overview = $4, comment = $5 WHERE id = $6 RETURNING *;`;
+    const values = [
+        recipe.title,
+        recipe.release_date,
+        recipe.poster_path,
+        recipe.overview,
+        recipe.comment,
+        id,
+    ];
+
+    client
+        .query(sql, values)
+        .then((result) => {
+            return res.status(200).json(result.rows);
+        })
+        .catch((error) => {
+            serverError(error, req, res);
+        });
+}
+
+function deleteMovieHandler(req, res) {
+    const id = req.params.id;
+
+    const sql = `DELETE FROM addMovies WHERE id=$1;`;
+    const values = [id];
+
+    client
+        .query(sql, values)
+        .then(() => {
+            return res.status(204).json({});
+        })
+        .catch((error) => {
+            serverError(error, req, res);
+        });
+}
+
+
+//===============================(end int point /t14)=======================================================================
 //=======================================================================================================================
 //===============================(int point /notfound)===============================================================
 app.get('*', notFoundHandler);
